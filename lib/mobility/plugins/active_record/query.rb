@@ -109,6 +109,19 @@ enabled for any one attribute on the model.
             end
           end
 
+          %w[select pluck group].each do |method_name|
+            define_method method_name do |*attrs|
+              i18n_keys, keys = attrs.partition(&@klass.method(:mobility_attribute?))
+              return super(*attrs) if i18n_keys.empty?
+
+              base = i18n_keys.inject(self) { |query, key|
+                @klass.mobility_backend_class(key).apply_scope(query, backend_node(key))
+              }
+
+              base.public_send(method_name, *(keys + i18n_keys.map(&method(:backend_node))))
+            end
+          end
+
           # Return backend node for attribute name.
           # @param [Symbol,String] name Name of attribute
           # @param [Symbol] locale Locale
